@@ -109,6 +109,10 @@ func (m *RedisModule) getConn() (redis.Conn, error) {
 	return conn, nil
 }
 
+fun (m *RedisModule) GetConn(redis.Conn, error) {
+	return m.getConn()
+}
+
 func (m *RedisModule) TestPingRedis() error {
 	conn, err := m.getConn()
 	if err != nil {
