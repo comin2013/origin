@@ -315,7 +315,7 @@ func (slf *TestService2) OnInit() error {
 }
 
 
-func (slf *TestService2) OnCron(){
+func (slf *TestService2) OnCron(cron *timer.Cron){
 	fmt.Printf(":A minute passed!\n")
 }
 ```
@@ -331,7 +331,7 @@ func (slf *TestService1) OnInit() error {
 	fmt.Printf("TestService1 OnInit.\n")
 	
 	//打开多线程处理模式，10个协程并发处理
-	slf.SetGoRouterNum(10)
+	slf.SetGoRoutineNum(10)
 	return nil
 }
 ```
@@ -356,7 +356,7 @@ func (slf *TestService1) OnInit() error {
 
 	slf.AfterFunc(time.Second*2,slf.Loop)
 	//打开多线程处理模式，10个协程并发处理
-	//slf.SetGoRouterNum(10)
+	//slf.SetGoRoutineNum(10)
 	return nil
 }
 
@@ -382,6 +382,23 @@ process count 0,take time 0 Milliseconds,average 0 Milliseconds/per.
 too slow process:Timer_orginserver/simple_service.(*TestService1).Loop-fm is take 38003 Milliseconds
 直接帮助找到TestService1服务中的Loop函数
 
+
+结点连接和断开事件监听:
+---------------
+在有些业务中需要关注某结点是否断开连接，可以注册回调如下：
+```
+func (ts *TestService) OnInit() error{
+	ts.RegRpcListener(ts)
+
+	return nil
+}
+
+func (ts *TestService) OnNodeConnected(nodeId int){
+}
+
+func (ts *TestService) OnNodeDisconnect(nodeId int){
+}
+```
 
 
 第三章：Module使用:
@@ -686,8 +703,44 @@ func (slf *TestService7) GoTest(){
 ```
 您可以把TestService6配置到其他的Node中，比如NodeId为2中。只要在一个子网，origin引擎可以无差别调用。开发者只需要关注Service关系。同样它也是您服务器架构设计的核心需要思考的部分。
 
+第六章：配置服务发现
+---------------
+origin引擎默认使用读取所有结点配置的进行确认结点有哪些Service。引擎也支持动态服务发现的方式，使用了内置的DiscoveryMaster服务用于中心Service，DiscoveryClient用于向DiscoveryMaster获取整个origin网络中所有的结点以及服务信息。具体实现细节请查看这两部分的服务实现。具体使用方式，在以下cluster配置中加入以下内容：
+```
+{
+	"MasterDiscoveryNode": [{
+		"NodeId": 2,
+		"ListenAddr": "127.0.0.1:10001",
+		"NeighborService":["HttpGateService"]
+	},
+	{
+		"NodeId": 1,
+		"ListenAddr": "127.0.0.1:8801"
+	}],
+	
+	
+	"NodeList": [{
+		"NodeId": 1,
+		"ListenAddr": "127.0.0.1:8801",
+		"NodeName": "Node_Test1",
+		"Private": false,
+		"remark": "//以_打头的，表示只在本机进程，不对整个子网开发",
+		"ServiceList": ["_TestService1", "TestService9", "TestService10"],
+		"DiscoveryService": ["TestService8"]
+	}]
+}
+```
+新上有两新不同的字段分别为MasterDiscoveryNode与DiscoveryService。其中:
 
-第六章：HttpService使用
+MasterDiscoveryNode中配置了结点Id为1的服务发现Master，他的监听地址ListenAddr为127.0.0.1:8801，结点为2的也是一个服务发现Master，不同在于多了"NeighborService":["HttpGateService"]配置。如果"NeighborService"有配置具体的服务时，则表示该结点是一个邻居Master结点。当前运行的Node结点会从该Master结点上筛选HttpGateService的服务，并且当前运行的Node结点不会向上同步本地所有公开的服务，和邻居结点关系是单向的。
+
+NeighborService可以用在当有多个以Master中心结点的网络，发现跨网络的服务场景。
+DiscoveryService表示将筛选origin网络中的TestService8服务，注意如果DiscoveryService不配置，则筛选功能不生效。
+
+
+
+
+第七章：HttpService使用
 ---------------
 HttpService是origin引擎中系统实现的http服务，http接口中常用的GET,POST以及url路由处理。
 
@@ -857,3 +910,9 @@ func (slf *TestTcpService) OnRequest (clientid uint64,msg proto.Message){
 
 [因服务器是由个人维护，如果这个项目对您有帮助，您可以点我进行捐赠，感谢！](http://www.cppblog.com/images/cppblog_com/API/21416/r_pay.jpg "Thanks!")
 
+特别感谢以下赞助网友：
+```
+咕咕兽
+_
+死磕代码
+```

@@ -94,8 +94,8 @@ func (t *Timer) Do(){
 			if r := recover(); r != nil {
 				buf := make([]byte, 4096)
 				l := runtime.Stack(buf, false)
-				err := fmt.Errorf("%v: %s", r, buf[:l])
-				log.Error("core dump info:%+v\n", err)
+				errString := fmt.Sprint(r)
+				log.SError("core dump info[",errString,"]\n",string(buf[:l]))
 			}
 		}()
 		t.cb()

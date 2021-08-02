@@ -129,9 +129,9 @@ func GetNodeId() int {
 func initNode(id int){
 	//1.初始化集群
 	nodeId = id
-	err := cluster.GetCluster().Init(GetNodeId())
+	err := cluster.GetCluster().Init(GetNodeId(),Setup)
 	if err != nil {
-		log.Fatal("read system config is error %+v",err)
+		log.SFatal("read system config is error ",err.Error())
 	}
 
 	err = initLog()
@@ -162,8 +162,8 @@ func initLog() error{
 	}
 
 	localnodeinfo := cluster.GetCluster().GetLocalNodeInfo()
-	filepre := fmt.Sprintf("%s[%d]", localnodeinfo.NodeName, localnodeinfo.NodeId)
-	logger,err := log.New(logLevel,logPath,filepre,slog.LstdFlags|slog.Lshortfile)
+	filepre := fmt.Sprintf("%s_%d_", localnodeinfo.NodeName, localnodeinfo.NodeId)
+	logger,err := log.New(logLevel,logPath,filepre,slog.LstdFlags|slog.Lshortfile,10)
 	if err != nil {
 		fmt.Printf("cannot create log file!\n")
 		return err
@@ -227,16 +227,16 @@ func startNode(args interface{}) error{
 		return fmt.Errorf("invalid option %s",param)
 	}
 
-	timer.StartTimer(10*time.Millisecond,100000)
-	log.Release("Start running server.")
+	timer.StartTimer(10*time.Millisecond,1000000)
+	log.SRelease("Start running server.")
 	//2.初始化node
 	initNode(nodeId)
 
-	//3.运行集群
-	cluster.GetCluster().Start()
-
-	//4.运行service
+	//3.运行service
 	service.Start()
+
+	//4.运行集群
+	cluster.GetCluster().Start()
 
 	//5.记录进程id号
 	writeProcessPid(nodeId)
@@ -250,7 +250,7 @@ func startNode(args interface{}) error{
 	for bRun {
 		select {
 		case <-sig:
-			log.Debug("receipt stop signal.")
+			log.SRelease("receipt stop signal.")
 			bRun = false
 		case <- pProfilerTicker.C:
 			profiler.Report()
@@ -261,7 +261,7 @@ func startNode(args interface{}) error{
 	close(closeSig)
 	service.WaitStop()
 
-	log.Debug("Server is stop.")
+	log.SRelease("Server is stop.")
 	return nil
 }
 
@@ -287,7 +287,7 @@ func GetConfigDir() string {
 }
 
 func SetSysLog(strLevel string, pathname string, flag int){
-	logs,_:= log.New(strLevel,pathname, "", flag)
+	logs,_:= log.New(strLevel,pathname, "", flag,10)
 	log.Export(logs)
 }
 
