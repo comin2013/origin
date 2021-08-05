@@ -62,18 +62,6 @@ func SetConfigDir(cfgDir string){
 	configDir = cfgDir
 }
 
-func (cls *Cluster) DumpRpcCallInfo() {
-	//
-	log.Debug("--------------start rpc call dump---------------")
-	for _, info := range cls.mapRpc {
-		if info.nodeInfo.NodeId != cls.GetLocalNodeInfo().NodeId{
-			info.client.DumpCallST()
-		}
-	}
-	log.Debug("--------------dump end ---------------")
-}
-
-
 func SetServiceDiscovery(serviceDiscovery IServiceDiscovery) {
 	cluster.serviceDiscovery = serviceDiscovery
 }

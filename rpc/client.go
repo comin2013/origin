@@ -7,7 +7,6 @@ import (
 	"github.com/duanhf2012/origin/log"
 	"github.com/duanhf2012/origin/network"
 	"github.com/duanhf2012/origin/util/timer"
-	"github.com/duanhf2012/origin/util/stat"
 	"math"
 	"reflect"
 	"runtime"
@@ -31,8 +30,6 @@ type Client struct {
 	callRpcTimeout       time.Duration
 	maxCheckCallRpcCount int
 	TriggerRpcEvent
-
-	CallST 		*stat.SecondStat // 统计调用次数
 }
 
 var clientSeq uint32
@@ -45,8 +42,6 @@ func (client *Client) NewClientAgent(conn *network.TCPConn) network.Agent {
 }
 
 func (client *Client) Connect(id int,addr string) error {
-	client.CallST = stat.NewTimeST()
-
 	client.clientSeq = atomic.AddUint32(&clientSeq,1)
 	client.id = id
 	client.Addr = addr
@@ -67,13 +62,11 @@ func (client *Client) Connect(id int,addr string) error {
 		client.bSelfNode = true
 		return nil
 	}
+
 	client.Start()
 	return nil
 }
-func (client *Client) DumpCallST(){
-	str := client.CallST.Dump()
-	log.Debug("To node %d, RPC call statistics:%s", client.id, str)
-}
+
 func (client *Client) startCheckRpcCallTimer(){
 	t:=timer.NewTimer(5*time.Second)
 	for{
@@ -138,7 +131,6 @@ func (client *Client) AddPending(call *Call){
 	call.callTime = time.Now()
 	elemTimer := client.pendingTimer.PushBack(call)
 	client.pending[call.Seq] = elemTimer //如果下面发送失败，将会一一直存在这里
-	client.CallST.Add()
 	client.pendingLock.Unlock()
 }
 
