@@ -9,11 +9,13 @@ import (
 	"github.com/duanhf2012/origin/rpc"
 	originSync "github.com/duanhf2012/origin/util/sync"
 	"github.com/duanhf2012/origin/util/timer"
+	"github.com/duanhf2012/origin/util/stat"
 	"reflect"
 	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 
@@ -54,6 +56,10 @@ type Service struct {
 	profiler *profiler.Profiler //性能分析器
 	rpcEventLister rpc.IRpcListener
 	chanEvent chan event.IEvent
+
+	openRpcStat bool
+	rpcReqST *stat.SecondStat
+
 }
 
 // RpcConnEvent Node结点连接事件
@@ -102,10 +108,13 @@ func (s *Service) Init(iService IService,getClientFun rpc.FuncRpcClient,getServe
 	s.eventProcessor.Init(s)
 	s.eventHandler =  event.NewEventHandler()
 	s.eventHandler.Init(s.eventProcessor)
+
 }
 
 
 func (s *Service) Start() {
+	s.ExInit()
+
 	s.startStatus = true
 	for i:=int32(0);i< s.goroutineNum;i++{
 		s.wg.Add(1)
@@ -285,7 +294,9 @@ func (s *Service) PushRpcRequest(rpcRequest *rpc.RpcRequest) error{
 	ev := eventPool.Get().(*event.Event)
 	ev.Type = event.ServiceRpcRequestEvent
 	ev.Data = rpcRequest
-
+	if s.rpcReqST != nil {
+		s.rpcReqST.Add()
+	}
 	return s.pushEvent(ev)
 }
 
@@ -322,4 +333,26 @@ func (s *Service) SetGoRoutineNum(goroutineNum int32) bool {
 
 	s.goroutineNum = goroutineNum
 	return true
+}
+
+func (s *Service) Dump() string{
+	if s.rpcReqST != nil {
+		return s.rpcReqST.Dump()		
+	}
+	return ""
+}
+
+func (s *Service) ExInit() {
+	ocfg := s.GetServiceCfg()
+	if ocfg == nil {return }
+	cfg := ocfg.(map[string]interface{})
+	if interval,ok := cfg["RpcStatDumpInterval"];ok{
+		inter := time.Duration(interval.(float64))
+		if inter  > 0{
+			s.rpcReqST = stat.NewTimeST()
+			s.NewTicker(time.Second*inter, func(ticker *timer.Ticker) {
+				log.Debug("RPC call %s stat:%s", s.GetName(), s.Dump())
+			})
+		}
+	}
 }

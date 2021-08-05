@@ -7,6 +7,7 @@ import (
 	"github.com/duanhf2012/origin/log"
 	"github.com/duanhf2012/origin/network"
 	"github.com/duanhf2012/origin/util/timer"
+	"github.com/duanhf2012/origin/util/stat"
 	"math"
 	"reflect"
 	"runtime"
@@ -31,7 +32,7 @@ type Client struct {
 	maxCheckCallRpcCount int
 	TriggerRpcEvent
 
-	CallST 		*SecondStat // 统计调用次数
+	CallST 		*stat.SecondStat // 统计调用次数
 }
 
 var clientSeq uint32
@@ -44,7 +45,7 @@ func (client *Client) NewClientAgent(conn *network.TCPConn) network.Agent {
 }
 
 func (client *Client) Connect(id int,addr string) error {
-	client.CallST = NewTimeST()
+	client.CallST = stat.NewTimeST()
 
 	client.clientSeq = atomic.AddUint32(&clientSeq,1)
 	client.id = id
@@ -69,8 +70,8 @@ func (client *Client) Connect(id int,addr string) error {
 	client.Start()
 	return nil
 }
-func (client *Client) DumpCallST(cot int){
-	str := client.CallST.Dump(cot)
+func (client *Client) DumpCallST(){
+	str := client.CallST.Dump()
 	log.Debug("To node %d, RPC call statistics:%s", client.id, str)
 }
 func (client *Client) startCheckRpcCallTimer(){
