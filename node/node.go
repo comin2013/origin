@@ -91,7 +91,7 @@ func setConfigPath(val interface{}) error{
 	return nil
 }
 
-func  getRunProcessPid(nodeId int) (int,error) {
+func getRunProcessPid(nodeId int) (int,error) {
 	f, err := os.OpenFile(fmt.Sprintf("%s_%d.pid",os.Args[0],nodeId), os.O_RDONLY, 0600)
 	defer f.Close()
 	if err!= nil {
@@ -142,7 +142,7 @@ func initNode(id int){
 	//2.setup service
 	for _,s := range preSetupService {
 		//是否配置的service
-		if cluster.GetCluster().IsConfigService(s.GetName()) == false {
+		if !s.IsMust() && cluster.GetCluster().IsConfigService(s.GetName()) == false {
 			continue
 		}
 
@@ -265,6 +265,24 @@ func startNode(args interface{}) error{
 	return nil
 }
 
+func Stop() {
+
+	cluster.GetCluster().Stop()
+
+	//退出
+	close(closeSig)
+	service.WaitStop()
+
+	processId,err := getRunProcessPid(GetNodeId())
+	if err != nil {
+		log.Error("get processPid failed:%s", err.Error())
+	}
+
+	KillProcess(processId)
+	log.SRelease("Server is stop.")
+
+}
+
 
 func Setup(s ...service.IService)  {
 	for _,sv := range s {
@@ -341,3 +359,5 @@ func setLogPath(args interface{}) error{
 
 	return nil
 }
+
+

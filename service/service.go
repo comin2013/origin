@@ -36,6 +36,7 @@ type IService interface {
 	GetServiceCfg()interface{}
 	OpenProfiler()
 	GetProfiler() *profiler.Profiler
+	IsMust() bool		// 是否为节点必装服务
 }
 
 // eventPool的内存池,缓存Event
@@ -60,6 +61,7 @@ type Service struct {
 	openRpcStat bool
 	rpcReqST *stat.SecondStat
 
+	must 	bool	// 必装服务
 }
 
 // RpcConnEvent Node结点连接事件
@@ -333,6 +335,14 @@ func (s *Service) SetGoRoutineNum(goroutineNum int32) bool {
 
 	s.goroutineNum = goroutineNum
 	return true
+}
+
+func (s *Service) IsMust() bool{
+	return s.must
+}
+
+func (s *Service) SetMust() {
+	s.must = true
 }
 
 func (s *Service) Dump() string{
