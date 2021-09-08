@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"time"
 	"fmt"
+	"sync"
 )
 
 const ElemMaxCount = 1000
@@ -18,6 +19,8 @@ type SecondStat struct {
 	maxCount int
 	maxElem *stElem	//
 	lastDumpTm int
+
+	lock sync.Mutex
 }
 
 func NewTimeST() *SecondStat{
@@ -35,7 +38,11 @@ func (slf *SecondStat) init(){
 	slf.st.Init()
 }
 
+
 func (slf *SecondStat) Add(){
+	slf.lock.Lock()
+	defer slf.lock.Unlock()
+
 	t := time.Now().Unix()
 
 	if slf.st.Len()==0 {

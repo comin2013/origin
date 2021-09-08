@@ -194,9 +194,13 @@ func (cls *Cluster) serviceDiscoverySetNodeInfo (nodeInfo *NodeInfo){
 	rpcInfo.nodeInfo = *nodeInfo
 	rpcInfo.client = &rpc.Client{}
 	rpcInfo.client.TriggerRpcEvent = cls.triggerRpcEvent
-	rpcInfo.client.Connect(nodeInfo.NodeId,nodeInfo.ListenAddr)
+	err := rpcInfo.client.Connect(nodeInfo.NodeId,nodeInfo.ListenAddr)
+	if err != nil {
+		log.Error("rpc connect failed:%s", err.Error())
+	}
 	cls.mapRpc[nodeInfo.NodeId] = rpcInfo
 
+	log.Debug("new rpc client to node[%d]", nodeInfo.NodeId)
 
 }
 
@@ -351,6 +355,11 @@ func GetRpcServer() *rpc.Server{
 func (cls *Cluster) IsNodeConnected (nodeId int) bool {
 	pClient := cls.GetRpcClient(nodeId)
 	return pClient!=nil && pClient.IsConnected()
+}
+
+func (cls *Cluster) GetNodeInfo(nodeId int) *NodeInfo {
+	info := cls.mapIdNode[nodeId]
+	return &info
 }
 
 func (cls *Cluster) triggerRpcEvent (bConnect bool,clientSeq uint32,nodeId int) {
